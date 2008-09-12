@@ -463,7 +463,7 @@ module Git
     def merge(branch, message = nil)      
       arr_opts = []
       arr_opts << ["-m '#{message}'"] if message
-      arr_opts << branch.to_a.join(' ')
+      arr_opts << Array(branch).join(' ')
       command('merge', arr_opts)
     end
 
@@ -543,7 +543,7 @@ module Git
     def read_tree(treeish, opts = {})
       arr_opts = []
       arr_opts << "--prefix=#{opts[:prefix]}" if opts[:prefix]
-      arr_opts << treeish.to_a.join(' ')
+      arr_opts << Array(treeish).join(' ')
       command('read-tree', arr_opts)
     end
     
@@ -560,7 +560,9 @@ module Git
       arr_opts = []
       arr_opts << tree
       arr_opts << "-p #{opts[:parent]}" if opts[:parent]
-      opts[:parents].each { |p| arr_opts << "-p #{p.to_s}" } if opts[:parents]
+      if opts[:parents]
+        Array(opts[:parents]).each { |p| arr_opts << "-p #{p.to_s}" }
+      end
       arr_opts << "< #{t.path}"
       command('commit-tree', arr_opts)
     end
@@ -616,12 +618,30 @@ module Git
     end
     
     def command(cmd, opts = [], chdir = true, &block)
-      ENV['GIT_DIR'] = @git_dir if (@git_dir != ENV['GIT_DIR'])
-      ENV['GIT_INDEX_FILE'] = @git_index_file if (@git_index_file != ENV['GIT_INDEX_FILE'])
-      ENV['GIT_WORK_TREE'] = @git_work_dir if (@git_work_dir != ENV['GIT_WORK_TREE'])
+      if @git_dir != ENV['GIT_DIR']
+        if @git_dir.nil?
+          ENV.delete('GIT_DIR')
+        else
+          ENV['GIT_DIR'] = @git_dir
+        end
+      end
+      if @git_index_file != ENV['GIT_INDEX_FILE']
+        if @git_index_file.nil?
+          ENV.delete('GIT_INDEX_FILE')
+        else
+          ENV['GIT_INDEX_FILE'] = @git_index_file
+        end
+      end
+      if @git_work_dir != ENV['GIT_WORK_TREE']
+        if @git_work_dir.nil?
+          ENV.delete('GIT_WORK_TREE')
+        else
+          ENV['GIT_WORK_TREE'] = @git_work_dir
+        end
+      end
       path = @git_work_dir || @git_dir || @path
 
-      opts = opts.to_a.join(' ')
+      opts = Array(opts).join(' ')
       git_cmd = "git #{cmd} #{opts} 2>&1"
 
       out = nil
